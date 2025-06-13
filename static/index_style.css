@@ -497,3 +497,63 @@ textarea#user-input::placeholder {
 		0 15px 32px rgba(150, 36, 85, 0.3),
 		0 6px 12px rgba(150, 36, 85, 0.2);
 }
+/* Add this to your existing index_style.css */
+
+/* Stop button specific styling */
+.send-button.stop-mode {
+	background: linear-gradient(135deg, #dc2626, #ef4444) !important;
+	box-shadow: 0 6px 16px rgba(220, 38, 38, 0.25) !important;
+}
+
+.send-button.stop-mode:hover {
+	background: linear-gradient(135deg, #b91c1c, #dc2626) !important;
+	box-shadow: 0 12px 28px rgba(220, 38, 38, 0.35) !important;
+	transform: translateY(-3px);
+}
+
+.send-button.stop-mode:active {
+	transform: translateY(-1px);
+}
+
+/* Stop icon animation */
+.stop-icon {
+	animation: pulse-stop 1.5s infinite;
+}
+
+@keyframes pulse-stop {
+	0%, 100% { 
+		opacity: 1; 
+		transform: scale(1);
+	}
+	50% { 
+		opacity: 0.8; 
+		transform: scale(0.95);
+	}
+}
+
+/* Enhanced send button transitions */
+.send-button {
+	transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.send-button svg {
+	transition: all 0.3s ease;
+}
+
+/* Input disabled state when generating */
+.input-container.generating {
+	opacity: 0.7;
+}
+
+.input-container.generating textarea {
+	pointer-events: none;
+	background: rgba(0, 0, 0, 0.02);
+}
+
+/* Cancelled message styling */
+.message.bot .bot-message-content[style*="italic"] {
+	background: rgba(220, 38, 38, 0.1);
+	padding: 8px 12px;
+	border-radius: 8px;
+	border-left: 3px solid #dc2626;
+}

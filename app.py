@@ -1,9 +1,9 @@
-from flask import Flask, request, jsonify, render_template
-from llama_cpp import Llama
-from flask_cors import CORS
+import json
 import uuid
-from random import random
 import re
+from flask import Flask, request, jsonify, render_template
+from flask_cors import CORS
+from llama_cpp import Llama
 
 # Initialize Flask app and allow CORS
 app = Flask(__name__, template_folder="templates")
@@ -30,44 +30,25 @@ system_prompt = (
     "accurate medical vocabulary, but explain complex terms briefly and clearly when needed."
 )
 
-MEDICAL_KEYWORDS = [
-    "pain", "fever", "rash", "headache", "vomiting", "cough", "diarrhea", "nausea",
-    "dizzy", "sick", "cramp", "swelling", "infection", "injury", "bleeding", "wound",
-    "burn", "symptom", "allergy", "asthma", "fracture", "blood pressure", "pulse",
-    "heart", "chest", "hip", "knee", "arm", "leg", "back", "lung", "eye", "ear",
-    "throat", "stomach", "urine", "vomit", "fracture", "cut", "lump", "itchy", "itch",
-    "numb", "migraine", "disease", "diabetes", "hypertension", "cancer", "tumor",
-    "eczema", "skin", "breathe", "breathing", "coughing", "fatigue", "tired", "anemia",
-    "discomfort", "paralysis", "broken", "sprain", "bruise", "HIV", "AIDS", "STD"
-]
-
-CONTEXT_VERBS = [
-    "have", "feel", "got", "getting", "suffering", "hurting", "experience", "experiencing",
-    "deal", "diagnosed", "injured", "broke", "fractured", "swollen", "burned", "infected",
-    "saw", "noticed", "observed", "lost", "vomited", "bleeding", "detected", "was", "been"
-]
-
-def classify_question(question):
-    """Classify whether the question is medical or non-medical."""
-    score = random()
-    label = "medical" if score > 0.6 else "non-medical"
-
-    question_lower = question.lower()
-    found_keyword = None
-
-    for keyword in MEDICAL_KEYWORDS:
-        if re.search(rf"\b{re.escape(keyword)}\b", question_lower):
-            found_keyword = keyword
-            break
-
-    if found_keyword:
-        for verb in CONTEXT_VERBS:
-            if re.search(rf"\b{re.escape(verb)}\b", question_lower):
-                print(f"[Context Match] Found medical keyword '{found_keyword}' + verb '{verb}' → override")
-                return "medical", 0.95
-
-    print(f"[Classifier] No context-based override. Classifier says {label} ({score:.2f})")
-    return label, score
+def classify_with_llm(question: str) -> str:
+    """
+    Ask the LLM to label the question as 'medical' or 'non-medical'.
+    """
+    prompt = (
+        "Classify the following user query as “medical” or “non-medical”:\n\n"
+        f"“{question}”\n\n"
+        "Answer in exactly this JSON format:\n"
+        '{ "label": "<medical|non-medical>" }'
+    )
+    # temperature=0 for consistency
+    resp = llm(prompt, max_tokens=12, temperature=0, stop=["}"])
+    text = resp["choices"][0]["text"].strip() + "}"
+    try:
+        data = json.loads(text)
+        return data.get("label", "non-medical")
+    except json.JSONDecodeError:
+        # fallback if LLM didn’t stick to format
+        return "non-medical"
 
 @app.route("/")
 def home():
@@ -77,59 +58,61 @@ def home():
 @app.route('/ask', methods=['POST'])
 def ask():
     data = request.json
-    question = data.get("question", "")
+    question = data.get("question", "").strip()
     session_id = data.get("session_id")
 
+    # Initialize new session if needed
     if not session_id or session_id == "null":
         session_id = str(uuid.uuid4())
         session_histories[session_id] = [{"role": "system", "content": system_prompt}]
-        session_context_flags[session_id] = False  # New session, assume not in medical context
+        session_context_flags[session_id] = False
 
-    history = session_histories.get(session_id, [{"role": "system", "content": system_prompt}])
+    history = session_histories.setdefault(session_id, [{"role": "system", "content": system_prompt}])
     is_medical_context = session_context_flags.get(session_id, False)
 
-    label, score = classify_question(question)
-    print(f"Classification result: {label} (score={score:.2f})")
+    # 1) Classify via LLM
+    label = classify_with_llm(question)
+    print(f"[LLM Classifier] Question labeled: {label}")
 
-    if label != "medical":
-        # Only allow non-medical messages if already in context
-        if not session_context_flags.get(session_id, False):
-            return jsonify({
-                "response": "Sorry, I can only respond to medical-related questions.",
-                "session_id": session_id
-            })
-
-    # If the user message is too short or off-topic
-    if len(question.split()) < 8 and not any(kw in question.lower() for kw in MEDICAL_KEYWORDS):
+    # 2) Enforce medical-only until context is set
+    if label != "medical" and not is_medical_context:
         return jsonify({
-            "response": "Let’s keep things medical – I can’t answer non-medical questions like that.",
+            "response": "Sorry, I can only respond to medical-related questions.",
             "session_id": session_id
         })
 
-    # Mark session as medical context
+    # # 3) Reject very short or off-topic inputs
+    # if len(question.split()) < 8:
+    #     return jsonify({
+    #         "response": "Let’s keep things medical – I can’t answer non-medical questions like that.",
+    #         "session_id": session_id
+    #     })
+
+    # 4) Mark session as medical context
     session_context_flags[session_id] = True
 
-    # Append user message to history
+    # 5) Append user message to history
     history.append({"role": "user", "content": question})
 
-    # Build the prompt for the LLM
+    # 6) Build the prompt for the LLM
     prompt = ""
     for turn in history:
         if turn["role"] == "system":
             prompt += turn["content"] + "\n"
         elif turn["role"] == "user":
-            prompt += f"[INST] {turn['content']} [/INST]"
+            prompt += f"[INST] {turn['content']} [/INST] "
         elif turn["role"] == "assistant":
             prompt += turn["content"] + " "
 
-    # Call the model
+    # 7) Call the model for the actual answer
     response = llm(prompt, max_tokens=300, stop=["</s>"])
     answer = response["choices"][0]["text"].strip()
 
-    # Append assistant response to history
+    # 8) Append assistant response to history
     history.append({"role": "assistant", "content": answer})
     session_histories[session_id] = history
 
+    # 9) Return JSON
     return jsonify({
         "response": answer,
         "session_id": session_id

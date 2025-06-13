@@ -1,4 +1,13 @@
+let currentRequest = null; // Track the current fetch request
+let isGenerating = false; // Track if model is currently generating
+
 async function sendMessage() {
+	// If currently generating, stop the generation
+	if (isGenerating) {
+		stopGeneration();
+		return;
+	}
+
 	const input = document.getElementById("user-input");
 	const text = input.value.trim();
 	if (!text) return;
@@ -17,9 +26,13 @@ async function sendMessage() {
 	input.value = "";
 	autoResize(input);
 
+	// Change send button to stop button
+	setSendButtonToStop();
+
 	// Typing indicator
 	const loadingWrapper = document.createElement("div");
 	loadingWrapper.className = "message-wrapper";
+	loadingWrapper.id = "loading-indicator"; // Add ID for easy removal
 	const loading = document.createElement("div");
 	loading.className = "message bot typing-indicator";
 	
@@ -47,15 +60,34 @@ async function sendMessage() {
 	chat.appendChild(loadingWrapper);
 	chat.scrollTop = chat.scrollHeight;
 
+	// Set generating state
+	isGenerating = true;
+
 	try {
+		// Create AbortController for cancelling the request
+		const abortController = new AbortController();
+		currentRequest = abortController;
+
 		const response = await fetch("http://127.0.0.1:5000/ask", {
 			method: "POST",
 			headers: { "Content-Type": "application/json" },
-			body: JSON.stringify({ session_id: null, question: text })
+			body: JSON.stringify({ session_id: null, question: text }),
+			signal: abortController.signal // Add abort signal
 		});
 
+		// Check if request was aborted
+		if (abortController.signal.aborted) {
+			console.log("Request was cancelled");
+			return;
+		}
+
 		const data = await response.json();
-		loadingWrapper.remove();
+		
+		// Remove loading indicator
+		const loadingElement = document.getElementById("loading-indicator");
+		if (loadingElement) {
+			loadingElement.remove();
+		}
 
 		// Bot response with rating
 		const wrapper = document.createElement("div");
@@ -115,32 +147,117 @@ async function sendMessage() {
 		wrapper.appendChild(ratingSection);
 
 		chat.appendChild(wrapper);
+
 	} catch (error) {
-		loadingWrapper.remove();
-		const errorWrapper = document.createElement("div");
-		errorWrapper.className = "message-wrapper";
-		const errorBubble = document.createElement("div");
-		errorBubble.className = "message bot";
-		
-		const botIcon = document.createElement("div");
-		botIcon.className = "bot-icon";
-		botIcon.innerHTML = `
-			<svg viewBox="0 0 24 24">
-				<path d="M12 2C13.1 2 14 2.9 14 4C14 5.1 13.1 6 12 6C10.9 6 10 5.1 10 4C10 2.9 10.9 2 12 2ZM21 9V7L15 1H5C3.89 1 3 1.89 3 3V7H3V9C3 11.76 5.24 14 8 14H16C18.76 14 21 11.76 21 9ZM7 22C5.89 22 5 21.11 5 20V17H7V20C7 20.55 7.45 21 8 21H16C16.55 21 17 20.55 17 20V17H19V20C19 21.11 18.11 22 17 22H7Z"/>
-			</svg>
-		`;
-		
-		const messageContent = document.createElement("div");
-		messageContent.className = "bot-message-content";
-		messageContent.textContent = "Sorry, I'm having trouble connecting right now. Please try again.";
-		
-		errorBubble.appendChild(botIcon);
-		errorBubble.appendChild(messageContent);
-		errorWrapper.appendChild(errorBubble);
-		chat.appendChild(errorWrapper);
+		// Remove loading indicator
+		const loadingElement = document.getElementById("loading-indicator");
+		if (loadingElement) {
+			loadingElement.remove();
+		}
+
+		// Check if error is due to abort
+		if (error.name === 'AbortError') {
+			// Add cancelled message
+			const cancelledWrapper = document.createElement("div");
+			cancelledWrapper.className = "message-wrapper";
+			const cancelledBubble = document.createElement("div");
+			cancelledBubble.className = "message bot";
+			
+			const botIcon = document.createElement("div");
+			botIcon.className = "bot-icon";
+			botIcon.innerHTML = `
+				<svg viewBox="0 0 24 24">
+					<path d="M12 2C13.1 2 14 2.9 14 4C14 5.1 13.1 6 12 6C10.9 6 10 5.1 10 4C10 2.9 10.9 2 12 2ZM21 9V7L15 1H5C3.89 1 3 1.89 3 3V7H3V9C3 11.76 5.24 14 8 14H16C18.76 14 21 11.76 21 9ZM7 22C5.89 22 5 21.11 5 20V17H7V20C7 20.55 7.45 21 8 21H16C16.55 21 17 20.55 17 20V17H19V20C19 21.11 18.11 22 17 22H7Z"/>
+				</svg>
+			`;
+			
+			const messageContent = document.createElement("div");
+			messageContent.className = "bot-message-content";
+			messageContent.textContent = "Response cancelled.";
+			messageContent.style.fontStyle = "italic";
+			messageContent.style.color = "#666";
+			
+			cancelledBubble.appendChild(botIcon);
+			cancelledBubble.appendChild(messageContent);
+			cancelledWrapper.appendChild(cancelledBubble);
+			chat.appendChild(cancelledWrapper);
+		} else {
+			// Handle other errors
+			const errorWrapper = document.createElement("div");
+			errorWrapper.className = "message-wrapper";
+			const errorBubble = document.createElement("div");
+			errorBubble.className = "message bot";
+			
+			const botIcon = document.createElement("div");
+			botIcon.className = "bot-icon";
+			botIcon.innerHTML = `
+				<svg viewBox="0 0 24 24">
+					<path d="M12 2C13.1 2 14 2.9 14 4C14 5.1 13.1 6 12 6C10.9 6 10 5.1 10 4C10 2.9 10.9 2 12 2ZM21 9V7L15 1H5C3.89 1 3 1.89 3 3V7H3V9C3 11.76 5.24 14 8 14H16C18.76 14 21 11.76 21 9ZM7 22C5.89 22 5 21.11 5 20V17H7V20C7 20.55 7.45 21 8 21H16C16.55 21 17 20.55 17 20V17H19V20C19 21.11 18.11 22 17 22H7Z"/>
+				</svg>
+			`;
+			
+			const messageContent = document.createElement("div");
+			messageContent.className = "bot-message-content";
+			messageContent.textContent = "Sorry, I'm having trouble connecting right now. Please try again.";
+			
+			errorBubble.appendChild(botIcon);
+			errorBubble.appendChild(messageContent);
+			errorWrapper.appendChild(errorBubble);
+			chat.appendChild(errorWrapper);
+		}
+	} finally {
+		// Reset button and state
+		setSendButtonToSend();
+		isGenerating = false;
+		currentRequest = null;
 	}
 
 	chat.scrollTop = chat.scrollHeight;
+}
+
+function stopGeneration() {
+	if (currentRequest) {
+		currentRequest.abort();
+		currentRequest = null;
+	}
+	
+	// Remove loading indicator if it exists
+	const loadingElement = document.getElementById("loading-indicator");
+	if (loadingElement) {
+		loadingElement.remove();
+	}
+	
+	// Reset button and state
+	setSendButtonToSend();
+	isGenerating = false;
+}
+
+function setSendButtonToStop() {
+	const sendButton = document.querySelector(".send-button");
+	sendButton.innerHTML = `
+		<svg class="stop-icon" viewBox="0 0 24 24" style="width: 16px; height: 16px; fill: currentColor;">
+			<path d="M6 6h12v12H6z"/>
+		</svg>
+	`;
+	sendButton.style.background = "linear-gradient(135deg, #dc2626, #ef4444)";
+	sendButton.title = "Stop generation";
+	
+	// Add stop button styling
+	sendButton.classList.add("stop-mode");
+}
+
+function setSendButtonToSend() {
+	const sendButton = document.querySelector(".send-button");
+	sendButton.innerHTML = `
+		<svg class="send-icon" viewBox="0 0 24 24" style="width: 16px; height: 16px; fill: currentColor;">
+			<path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+		</svg>
+	`;
+	sendButton.style.background = "linear-gradient(135deg, #962455, #AB4F77)";
+	sendButton.title = "Send message";
+	
+	// Remove stop button styling
+	sendButton.classList.remove("stop-mode");
 }
 
 function autoResize(textarea) {
@@ -152,6 +269,13 @@ document.getElementById("user-input").addEventListener("keydown", function (e) {
 	if (e.key === "Enter" && !e.shiftKey) {
 		e.preventDefault();
 		sendMessage();
+	}
+});
+
+// Handle page unload to cancel any ongoing requests
+window.addEventListener('beforeunload', () => {
+	if (currentRequest) {
+		currentRequest.abort();
 	}
 });
 
