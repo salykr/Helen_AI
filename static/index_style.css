@@ -685,3 +685,236 @@ textarea#user-input::placeholder {
 	border-radius: 8px;
 	border-left: 3px solid #dc2626;
 }
+/* Add these styles to your existing index_style.css file */
+
+/* Edit button for user messages */
+.edit-button {
+	position: absolute;
+	top: 8px;
+	right: 8px;
+	background: rgba(255, 255, 255, 0.9);
+	border: none;
+	border-radius: 6px;
+	padding: 6px;
+	cursor: pointer;
+	opacity: 0;
+	transition: all 0.3s ease;
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+	backdrop-filter: blur(10px);
+}
+
+.message.user {
+	position: relative;
+}
+
+.message.user:hover .edit-button {
+	opacity: 1;
+}
+
+.edit-button:hover {
+	background: rgba(255, 255, 255, 1);
+	transform: scale(1.1);
+	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.edit-button svg {
+	display: block;
+	color: #666;
+}
+
+.edit-button:hover svg {
+	color: #962455;
+}
+
+/* Edit container styles */
+.edit-container {
+	width: 100%;
+	padding: 0;
+}
+
+.edit-textarea {
+	width: 100%;
+	min-height: 40px;
+	max-height: 200px;
+	padding: 12px 16px;
+	border: 2px solid rgba(150, 36, 85, 0.3);
+	border-radius: 12px;
+	font-family: 'Inter', sans-serif;
+	font-size: 15px;
+	line-height: 1.5;
+	background: rgba(255, 255, 255, 0.95);
+	color: #4a5568;
+	resize: none;
+	outline: none;
+	transition: all 0.3s ease;
+}
+
+.edit-textarea:focus {
+	border-color: #962455;
+	box-shadow: 0 0 0 3px rgba(150, 36, 85, 0.1);
+}
+
+.edit-textarea::placeholder {
+	color: #a0aec0;
+}
+
+/* Edit buttons */
+.edit-buttons {
+	display: flex;
+	gap: 8px;
+	margin-top: 12px;
+	justify-content: flex-end;
+}
+
+.edit-save-btn, .edit-cancel-btn {
+	display: flex;
+	align-items: center;
+	padding: 8px 16px;
+	border: none;
+	border-radius: 8px;
+	font-size: 13px;
+	font-weight: 500;
+	cursor: pointer;
+	transition: all 0.3s ease;
+	font-family: 'Inter', sans-serif;
+}
+
+.edit-save-btn {
+	background: linear-gradient(135deg, #962455, #AB4F77);
+	color: white;
+	box-shadow: 0 2px 8px rgba(150, 36, 85, 0.2);
+}
+
+.edit-save-btn:hover {
+	transform: translateY(-1px);
+	box-shadow: 0 4px 12px rgba(150, 36, 85, 0.3);
+}
+
+.edit-cancel-btn {
+	background: #f7fafc;
+	color: #718096;
+	border: 1px solid #e2e8f0;
+}
+
+.edit-cancel-btn:hover {
+	background: #edf2f7;
+	color: #4a5568;
+	transform: translateY(-1px);
+}
+
+/* Editing state */
+.message.user.editing {
+	background: linear-gradient(135deg, rgba(150, 36, 85, 0.05), rgba(171, 79, 119, 0.05));
+	border: 2px solid rgba(150, 36, 85, 0.2);
+	box-shadow: 0 4px 20px rgba(150, 36, 85, 0.1);
+}
+
+/* Live timer during generation */
+.live-timer {
+	font-size: 11px !important;
+	color: #888 !important;
+	margin-top: 8px !important;
+	display: flex !important;
+	align-items: center !important;
+	font-weight: 500 !important;
+	opacity: 0.8 !important;
+}
+
+.live-timer svg {
+	margin-right: 4px !important;
+	opacity: 0.7 !important;
+	animation: timer-pulse 2s infinite !important;
+}
+
+@keyframes timer-pulse {
+	0%, 100% { opacity: 0.7; }
+	50% { opacity: 1; }
+}
+
+/* Response time indicator */
+.response-time {
+	display: flex;
+	align-items: center;
+	justify-content: flex-start;
+	font-size: 11px;
+	color: #888;
+	margin-top: 8px;
+	margin-left: 38px; /* Align with bot message content */
+	font-weight: 500;
+	opacity: 0.8;
+	transition: all 0.3s ease;
+}
+
+.response-time.cancelled {
+	color: #dc2626;
+	font-style: italic;
+}
+
+.response-time svg {
+	margin-right: 4px;
+	opacity: 0.7;
+}
+
+/* Response time color coding */
+.response-time.fast { color: #16a34a; } /* Green for fast responses (< 2s) */
+.response-time.medium { color: #ca8a04; } /* Yellow for medium responses (2-5s) */
+.response-time.slow { color: #dc2626; } /* Red for slow responses (> 5s) */
+
+/* Hover effect to highlight timing */
+.message-wrapper:hover .response-time {
+	opacity: 1;
+	transform: translateX(2px);
+}
+
+.message-wrapper:hover .response-time.cancelled {
+	color: #dc2626;
+}
+
+/* Stop button specific styling */
+.send-button.stop-mode {
+	background: linear-gradient(135deg, #dc2626, #ef4444) !important;
+	box-shadow: 0 6px 16px rgba(220, 38, 38, 0.25) !important;
+}
+
+.send-button.stop-mode:hover {
+	background: linear-gradient(135deg, #b91c1c, #dc2626) !important;
+	box-shadow: 0 12px 28px rgba(220, 38, 38, 0.35) !important;
+	transform: translateY(-3px);
+}
+
+.send-button.stop-mode:active {
+	transform: translateY(-1px);
+}
+
+/* Stop icon animation */
+.stop-icon {
+	animation: pulse-stop 1.5s infinite;
+}
+
+@keyframes pulse-stop {
+	0%, 100% { 
+		opacity: 1; 
+		transform: scale(1);
+	}
+	50% { 
+		opacity: 0.8; 
+		transform: scale(0.95);
+	}
+}
+
+/* Enhanced send button transitions */
+.send-button {
+	transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.send-button svg {
+	transition: all 0.3s ease;
+}
+
+/* Cancelled message styling */
+.message.bot .bot-message-content[style*="italic"] {
+	background: rgba(220, 38, 38, 0.1);
+	padding: 8px 12px;
+	border-radius: 8px;
+	border-left: 3px solid #dc2626;
+}
