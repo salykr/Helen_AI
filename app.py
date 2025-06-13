@@ -113,7 +113,9 @@ def ask():
     session_histories[session_id] = history
 
     # 9) Return JSON
+    # 9) Return JSON (include the classification label)
     return jsonify({
+        "label": label, #remove when done testing
         "response": answer,
         "session_id": session_id
     })
