@@ -557,3 +557,131 @@ textarea#user-input::placeholder {
 	border-radius: 8px;
 	border-left: 3px solid #dc2626;
 }
+/* Add this to your existing index_style.css */
+
+/* Live timer during generation */
+.live-timer {
+	font-size: 11px !important;
+	color: #888 !important;
+	margin-top: 8px !important;
+	display: flex !important;
+	align-items: center !important;
+	font-weight: 500 !important;
+	opacity: 0.8 !important;
+}
+
+.live-timer svg {
+	margin-right: 4px !important;
+	opacity: 0.7 !important;
+	animation: timer-pulse 2s infinite !important;
+}
+
+@keyframes timer-pulse {
+	0%, 100% { opacity: 0.7; }
+	50% { opacity: 1; }
+}
+
+/* Response time indicator */
+.response-time {
+	display: flex;
+	align-items: center;
+	justify-content: flex-start;
+	font-size: 11px;
+	color: #888;
+	margin-top: 8px;
+	margin-left: 38px; /* Align with bot message content */
+	font-weight: 500;
+	opacity: 0.8;
+	transition: all 0.3s ease;
+}
+
+.response-time.cancelled {
+	color: #dc2626;
+	font-style: italic;
+}
+
+.response-time svg {
+	margin-right: 4px;
+	opacity: 0.7;
+}
+
+/* Response time color coding */
+.response-time.fast { color: #16a34a; } /* Green for fast responses (< 2s) */
+.response-time.medium { color: #ca8a04; } /* Yellow for medium responses (2-5s) */
+.response-time.slow { color: #dc2626; } /* Red for slow responses (> 5s) */
+
+/* Enhanced message wrapper to accommodate timing */
+.message-wrapper {
+	margin-bottom: 28px;
+	animation: slideUp 0.5s ease-out;
+	position: relative;
+}
+
+/* Hover effect to highlight timing */
+.message-wrapper:hover .response-time {
+	opacity: 1;
+	transform: translateX(2px);
+}
+
+.message-wrapper:hover .response-time.cancelled {
+	color: #dc2626;
+}
+
+/* Stop button specific styling */
+.send-button.stop-mode {
+	background: linear-gradient(135deg, #dc2626, #ef4444) !important;
+	box-shadow: 0 6px 16px rgba(220, 38, 38, 0.25) !important;
+}
+
+.send-button.stop-mode:hover {
+	background: linear-gradient(135deg, #b91c1c, #dc2626) !important;
+	box-shadow: 0 12px 28px rgba(220, 38, 38, 0.35) !important;
+	transform: translateY(-3px);
+}
+
+.send-button.stop-mode:active {
+	transform: translateY(-1px);
+}
+
+/* Stop icon animation */
+.stop-icon {
+	animation: pulse-stop 1.5s infinite;
+}
+
+@keyframes pulse-stop {
+	0%, 100% { 
+		opacity: 1; 
+		transform: scale(1);
+	}
+	50% { 
+		opacity: 0.8; 
+		transform: scale(0.95);
+	}
+}
+
+/* Enhanced send button transitions */
+.send-button {
+	transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.send-button svg {
+	transition: all 0.3s ease;
+}
+
+/* Input disabled state when generating */
+.input-container.generating {
+	opacity: 0.7;
+}
+
+.input-container.generating textarea {
+	pointer-events: none;
+	background: rgba(0, 0, 0, 0.02);
+}
+
+/* Cancelled message styling */
+.message.bot .bot-message-content[style*="italic"] {
+	background: rgba(220, 38, 38, 0.1);
+	padding: 8px 12px;
+	border-radius: 8px;
+	border-left: 3px solid #dc2626;
+}
